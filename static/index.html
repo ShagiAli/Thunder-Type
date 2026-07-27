@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thunder Type</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<canvas id="mainCanvas" class="ambient-canvas" aria-hidden="true"></canvas>
+<div class="app" id="appRoot" hidden>
+
+  <header class="nav">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>Thunder Type</h1>
+        <p id="playerGreeting">Practice, track your best scores, level up your typing.</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button id="btnTheme" class="icon-btn btn-ghost" type="button" title="Toggle theme" aria-label="Toggle theme">◐</button>
+      <button id="btnProfile" class="btn-ghost" type="button">Profile</button>
+      <button id="btnReset" class="btn-ghost" type="button">Reset</button>
+      <button id="btnNextLevel" class="btn-primary" type="button" disabled>Next Level</button>
+    </div>
+  </header>
+
+  <div class="level-track" id="levelTrack" aria-label="Level progress"></div>
+
+  <main>
+    <section class="card prompt-card round-enter" id="promptCard">
+      <div class="prompt-header">
+        <p class="card-label">Prompt</p>
+        <span class="level-pill" id="levelPill">Level 1 of 10</span>
+      </div>
+      <p class="prompt-text" id="promptText" aria-live="off"></p>
+    </section>
+
+    <section class="card type-card">
+      <p class="card-label">Your typing</p>
+      <textarea
+        id="typeInput"
+        rows="4"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        placeholder="Start typing the prompt above..."
+      ></textarea>
+    </section>
+
+    <section class="card voltage-meter">
+      <p class="card-label">Progress to finish</p>
+      <div class="voltage-track">
+        <div class="voltage-fill" id="voltageFill"></div>
+      </div>
+    </section>
+
+    <section class="stats-row">
+      <div class="card stat-card">
+        <p class="card-label">Speed (WPM)</p>
+        <p class="stat-value" id="statWpm">0.0</p>
+      </div>
+      <div class="card stat-card">
+        <p class="card-label">Accuracy</p>
+        <p class="stat-value" id="statAccuracy">0.0%</p>
+      </div>
+      <div class="card stat-card">
+        <p class="card-label">Time (s)</p>
+        <p class="stat-value" id="statTime">0.0</p>
+      </div>
+    </section>
+
+    <section class="card combo-card">
+      <p class="card-label">Session status</p>
+      <span class="combo-line" id="comboLine">Combo: 0 | Best: 0</span>
+      <p class="combo-tip">Tip: 5 characters = 1 word for WPM. Keep a long streak of correct characters for a high combo.</p>
+    </section>
+
+    <p class="status-line" id="statusLine">Start typing to begin. Your stats and combo will update above.</p>
+  </main>
+</div>
+
+<div class="modal-overlay open" id="signinOverlay">
+  <canvas id="signinCanvas" class="signin-canvas" aria-hidden="true"></canvas>
+  <div class="modal signin-card">
+    <svg class="signin-bolt" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
+    </svg>
+    <h2>Welcome to Thunder Type</h2>
+    <p class="sub">Enter your name to start climbing the 10 levels.</p>
+
+    <form id="signinForm" novalidate>
+      <div class="field">
+        <label for="signinName">Name</label>
+        <input type="text" id="signinName" maxlength="40" placeholder="e.g. Awab" autocomplete="off" list="knownUsers" />
+        <datalist id="knownUsers"></datalist>
+      </div>
+      <p class="signin-error" id="signinError" hidden>Please enter your name to continue.</p>
+      <button class="btn-primary modal-close" type="submit">Start Playing</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileOverlay">
+  <div class="modal">
+    <h2>Player profile</h2>
+    <p class="sub">Your Thunder Type stats, saved between sessions.</p>
+
+    <div class="field">
+      <label>Signed in as</label>
+      <span class="profile-name" id="profileName">Player</span>
+    </div>
+
+    <div class="profile-stats">
+      <p class="lead" id="profileBestWpm">Best speed: 0.0 WPM</p>
+      <p id="profileBestAccuracy">Best accuracy: 0.0%</p>
+      <p id="profileMaxCombo">Best combo: 0</p>
+      <p id="profileRounds">Rounds finished: 0</p>
+    </div>
+
+    <button class="btn-primary modal-close" id="btnCloseProfile" type="button">Close</button>
+    <button class="btn-ghost modal-close" id="btnSwitchUser" type="button">Switch User</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="levelCompleteOverlay">
+  <div class="modal complete-card">
+    <svg class="signin-bolt" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
+    </svg>
+    <h2 id="completeTitle">Level 1 complete!</h2>
+    <p class="sub" id="completeSubtitle">Here's how that run went.</p>
+
+    <div class="complete-stats">
+      <div class="complete-stat">
+        <p class="card-label">Speed</p>
+        <p class="stat-value" id="completeWpm">0.0 WPM</p>
+      </div>
+      <div class="complete-stat">
+        <p class="card-label">Accuracy</p>
+        <p class="stat-value" id="completeAccuracy">0.0%</p>
+      </div>
+      <div class="complete-stat">
+        <p class="card-label">Time</p>
+        <p class="stat-value" id="completeTime">0.0s</p>
+      </div>
+      <div class="complete-stat">
+        <p class="card-label">Best combo</p>
+        <p class="stat-value" id="completeCombo">0</p>
+      </div>
+    </div>
+
+    <p class="complete-note" id="completeNote"></p>
+
+    <div class="complete-actions">
+      <button class="btn-ghost modal-close" id="btnCompleteReset" type="button">Reset This Level</button>
+      <button class="btn-primary modal-close" id="btnCompleteNext" type="button">Next Level</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+[
+  {
+    "level": 1,
+    "texts": [
+      "Cats sleep a lot.",
+      "The sun is hot."
+    ]
+  },
+  {
+    "level": 2,
+    "texts": [
+      "The dog ran fast down the street.",
+      "I like to read books at night."
+    ]
+  },
+  {
+    "level": 3,
+    "texts": [
+      "Clean code is simple, clear, and easy to maintain.",
+      "Typing fast is a useful skill for programmers and students."
+    ]
+  },
+  {
+    "level": 4,
+    "texts": [
+      "Practice every day and you will see your typing speed increase over time.",
+      "A quiet morning walk can help clear your mind before a busy day."
+    ]
+  },
+  {
+    "level": 5,
+    "texts": [
+      "Programming is the art of telling another human what one wants the computer to do.",
+      "Good communication is often more valuable than technical skill alone."
+    ]
+  },
+  {
+    "level": 6,
+    "texts": [
+      "Artificial intelligence is transforming the way we work, learn, and communicate.",
+      "Thunder Type is the fastest typing game created by Awab! Can you beat your best score?"
+    ]
+  },
+  {
+    "level": 7,
+    "texts": [
+      "Small, consistent habits compound into remarkable results over months and years.",
+      "The best engineers are not the fastest typists, but the clearest thinkers."
+    ]
+  },
+  {
+    "level": 8,
+    "texts": [
+      "In 2026, developers rely on tools like Git, Docker, & CI/CD pipelines (often daily).",
+      "\"Move fast,\" she said, \"but never break what you can't quickly fix.\""
+    ]
+  },
+  {
+    "level": 9,
+    "texts": [
+      "Deadlines, meetings, and Slack pings @ 9:47 AM rarely leave room for deep, focused work.",
+      "Version 2.0 shipped with 37% fewer bugs, 12 new features, and $0 in extra cost."
+    ]
+  },
+  {
+    "level": 10,
+    "texts": [
+      "Extraordinary achievements require consistent practice, unwavering focus, disciplined patience, and \u2014 above all \u2014 genuine curiosity about how things truly work.",
+      "The compiler emitted 3 warnings, 1 deprecation notice, and (oddly) zero actual errors \u2014 which, in hindsight, should have worried us more."
+    ]
+  }
+]
