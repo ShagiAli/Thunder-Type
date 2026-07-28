@@ -3,7 +3,7 @@
 
 import { GameState } from "./gameState.js";
 import { accuracyColorBucket } from "./stats.js";
-import { loadProfile, loadTexts, loadUsers, saveProfile } from "./api.js";
+import { authenticate, loadTexts, loadUsers, saveStats } from "./api.js";
 import { createSigninBackground } from "./signinBackground.js";
 import { createAmbientBackground } from "./ambientBackground.js";
 
@@ -25,6 +25,7 @@ const els = {
   signinCanvas: document.getElementById("signinCanvas"),
   signinForm: document.getElementById("signinForm"),
   signinName: document.getElementById("signinName"),
+  signinPassword: document.getElementById("signinPassword"),
   signinError: document.getElementById("signinError"),
   knownUsers: document.getElementById("knownUsers"),
   playerGreeting: document.getElementById("playerGreeting"),
@@ -68,17 +69,27 @@ const signinBg = createSigninBackground(els.signinCanvas, els.signinName);
 const ambientBg = createAmbientBackground(els.mainCanvas);
 let levels = [];
 let playerName = "";
+let currentPassword = ""; // kept in memory only for the duration of the session, used to authorize saves
 let currentLevel = 1;
 let comboBeforeLevel = 0;
 let pendingGreeting = null;
 let tickHandle = null;
 let backendAvailable = true;
 
-const SESSION_KEY = "thunderType.signedInAs";
+const SESSION_KEY = "thunderType.session";
 
-function saveSession(name) {
+// NOTE ON TRADEOFF: storing the password here (not just the name) is what
+// lets a page refresh keep you signed in without re-typing it, matching
+// the existing refresh behavior. It sits in sessionStorage — tied to this
+// browser tab, cleared when the tab closes, never sent anywhere except
+// back to this same origin's API. For a casual project this is a
+// reasonable tradeoff; if you want stricter behavior (re-enter password
+// on every refresh), stop storing `password` here and prompt for it again
+// in enterGameAs() instead.
+
+function saveSession(name, password) {
   try {
-    sessionStorage.setItem(SESSION_KEY, name);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ name, password }));
   } catch (err) {
     console.warn("Thunder Type: couldn't save session (storage may be blocked by browser privacy settings):", err);
   }
@@ -94,9 +105,9 @@ function clearSession() {
 
 function readSession() {
   try {
-    const value = sessionStorage.getItem(SESSION_KEY);
-    console.log("Thunder Type: session check on load ->", value ? `found "${value}"` : "none found");
-    return value;
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    console.log("Thunder Type: session check on load ->", raw ? "found saved session" : "none found");
+    return raw ? JSON.parse(raw) : null;
   } catch (err) {
     console.warn("Thunder Type: couldn't read session (storage may be blocked by browser privacy settings):", err);
     return null;
@@ -120,9 +131,9 @@ async function init() {
 
   bindEvents();
 
-  const savedName = readSession();
-  if (savedName) {
-    await enterGameAs(savedName, { silent: true });
+  const saved = readSession();
+  if (saved && saved.name && saved.password) {
+    await enterGameAs(saved.name, saved.password, { silent: true });
   } else {
     showSignIn();
   }
@@ -142,8 +153,18 @@ function bindEvents() {
   els.signinForm.addEventListener("submit", onSignIn);
   els.signinName.addEventListener("input", () => {
     if (els.signinName.value.trim()) {
-      els.signinError.hidden = true;
       els.signinName.parentElement.classList.remove("has-error");
+    }
+    if (els.signinName.value.trim() && els.signinPassword.value) {
+      els.signinError.hidden = true;
+    }
+  });
+  els.signinPassword.addEventListener("input", () => {
+    if (els.signinPassword.value) {
+      els.signinPassword.parentElement.classList.remove("has-error");
+    }
+    if (els.signinName.value.trim() && els.signinPassword.value) {
+      els.signinError.hidden = true;
     }
   });
   els.btnNextLevel.addEventListener("click", nextLevel);
@@ -183,43 +204,55 @@ function showSignIn() {
 async function onSignIn(event) {
   event.preventDefault();
   const name = els.signinName.value.trim();
-  if (!name) {
+  const password = els.signinPassword.value;
+
+  if (!name || !password) {
+    els.signinError.textContent = "Please enter both a name and a password to continue.";
     els.signinError.hidden = false;
-    els.signinName.parentElement.classList.add("has-error");
-    els.signinName.focus();
+    els.signinName.parentElement.classList.toggle("has-error", !name);
+    els.signinPassword.parentElement.classList.toggle("has-error", !password);
+    (name ? els.signinPassword : els.signinName).focus();
     return;
   }
   els.signinError.hidden = true;
   els.signinName.parentElement.classList.remove("has-error");
+  els.signinPassword.parentElement.classList.remove("has-error");
 
   const submitBtn = els.signinForm.querySelector("button[type=submit]");
   submitBtn.disabled = true;
   submitBtn.textContent = "Signing in...";
 
-  await enterGameAs(name);
+  const ok = await enterGameAs(name, password);
 
   submitBtn.disabled = false;
   submitBtn.textContent = "Start Playing";
+
+  if (ok) {
+    els.signinPassword.value = "";
+  }
 }
 
-async function enterGameAs(name, { silent = false } = {}) {
+/** Returns true on success, false if sign-in failed and the user needs to try again. */
+async function enterGameAs(name, password, { silent = false } = {}) {
   try {
     if (backendAvailable) {
-      const profile = await loadProfile(name);
+      const profile = await authenticate(name, password);
       state.bestWpm = profile.best_wpm;
       state.bestAccuracy = profile.best_accuracy;
       state.maxCombo = profile.max_combo;
       state.roundsFinished = profile.rounds_finished;
       currentLevel = clampLevel(profile.current_level || 1);
       playerName = profile.player_name; // preserves this user's original casing
+      currentPassword = password;
       pendingGreeting = silent
         ? `${playerName} \u2014 welcome back. Resuming Level ${currentLevel}.`
         : profile.exists
           ? `Welcome back, ${playerName}! Resuming at Level ${currentLevel}.`
-          : `Welcome, ${playerName}! Let's get you started at Level 1.`;
+          : `Welcome, ${playerName}! Your account is set up \u2014 let's get started at Level 1.`;
     } else {
       // No backend reachable — every "user" just gets a fresh, unsaved session.
       playerName = name;
+      currentPassword = password;
       state.bestWpm = 0;
       state.bestAccuracy = 0;
       state.maxCombo = 0;
@@ -228,13 +261,31 @@ async function enterGameAs(name, { silent = false } = {}) {
       pendingGreeting = `Hi ${playerName}! Playing without persistence this session.`;
     }
   } catch (err) {
-    console.warn("Could not load profile, starting fresh:", err);
+    if (err.status === 401) {
+      // Wrong password for an existing name — do NOT enter the game or
+      // leak any stats. Stay on the sign-in screen with a clear error.
+      if (silent) {
+        // A saved session became invalid (e.g. password was reset another
+        // way) — clear it quietly and just show the normal sign-in form.
+        clearSession();
+        showSignIn();
+        return false;
+      }
+      els.signinError.textContent = "Incorrect password for that name. Try again, or use a different name to create a new account.";
+      els.signinError.hidden = false;
+      els.signinPassword.parentElement.classList.add("has-error");
+      els.signinPassword.value = "";
+      els.signinPassword.focus();
+      return false;
+    }
+    console.warn("Could not sign in, starting an unsaved session:", err);
     playerName = name;
+    currentPassword = password;
     currentLevel = 1;
     pendingGreeting = `Hi ${playerName}! Let's get you started at Level 1.`;
   }
 
-  saveSession(playerName);
+  saveSession(playerName, currentPassword);
   els.profileName.textContent = playerName;
   els.signinOverlay.classList.remove("open");
   signinBg.stop();
@@ -245,6 +296,7 @@ async function enterGameAs(name, { silent = false } = {}) {
   refreshKnownUsers();
   startLevel(currentLevel);
   startTicker();
+  return true;
 }
 
 // ---- level flow ----
@@ -395,8 +447,10 @@ function switchUser() {
   ambientBg.stop();
   els.typeInput.value = "";
   els.signinName.value = "";
+  els.signinPassword.value = "";
 
   playerName = "";
+  currentPassword = "";
   currentLevel = 1;
   state.bestWpm = 0;
   state.bestAccuracy = 0;
@@ -488,15 +542,23 @@ function startTicker() {
 }
 
 function persist() {
-  if (!backendAvailable) return;
-  saveProfile({
-    player_name: playerName,
+  if (!backendAvailable || !currentPassword) return;
+  saveStats(playerName, currentPassword, {
     best_wpm: state.bestWpm,
     best_accuracy: state.bestAccuracy,
     max_combo: state.maxCombo,
     rounds_finished: state.roundsFinished,
     current_level: currentLevel,
-  }).catch((err) => console.warn("Could not save profile:", err));
+  }).catch((err) => {
+    if (err.status === 401) {
+      // Password no longer valid for this account — don't keep silently
+      // failing every save. Sign the session out so they can re-auth.
+      console.warn("Session is no longer valid, signing out:", err);
+      clearSession();
+    } else {
+      console.warn("Could not save profile:", err);
+    }
+  });
 }
 
 window.addEventListener("beforeunload", persist);

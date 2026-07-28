@@ -8,18 +8,29 @@ robust stack.
   the browser tab (via `sessionStorage`) so reloading just resets your
   current level's attempt instead of sending you back to the sign-in
   screen. Closing the tab/browser clears it, so the next visit starts at
-  sign-in again — useful on a shared computer.
+  sign-in again — useful on a shared computer. Note: your password is also
+  kept in that same `sessionStorage` entry so refresh doesn't force you to
+  re-type it — reasonable for a casual project, but know that it sits in
+  the browser tab's storage for as long as the tab stays open.
+- **If you already deployed an earlier version without passwords**: the
+  first time each existing name signs in after this update, whatever
+  password they type becomes that account's password going forward (their
+  existing stats are preserved, not reset). After that first login, the
+  password is required as normal.
 
 ## What's in this version
 
-- **Sign-in screen**: on load you enter your name before the game appears.
-  Type a name that's played before (autocomplete suggests known names) or a
-  new one to start fresh.
+- **Password-protected sign-in**: enter a name and password before the game
+  appears. A new name creates an account with that password; an existing
+  name requires the matching password — no one can view or overwrite
+  someone else's stats just by typing their name. Passwords are hashed
+  (PBKDF2-HMAC-SHA256, stdlib only) and never stored or logged in plaintext.
 - **Every name has fully separate stats.** Best speed, best accuracy, best
   combo, rounds finished, and current level are all tracked per user in a
   real database (SQLite locally, Postgres in production — see "Deploying
   it" below), keyed by a case-insensitive version of their name. "Awab"
-  and "Sara" never see or affect each other's numbers.
+  and "Sara" never see or affect each other's numbers, and can't sign in as
+  each other without the right password.
 - **Switch User button** (inside the Profile panel) cleanly signs the
   current player out and returns to the sign-in screen without closing the
   app or losing anything — their progress is saved first.
@@ -133,8 +144,11 @@ thunder_type_web/
 
 ## API
 
-- `GET /api/profile?name=Awab` — that user's saved stats (fresh defaults if new)
-- `POST /api/profile` — upserts one user's record (body must include `player_name`)
+- `POST /api/auth` — body `{player_name, password}`. Creates an account if the
+  name is new (using that password); logs in and returns stats if the name
+  exists and the password matches; returns 401 if it doesn't.
+- `POST /api/save` — body `{player_name, password, ...stats}`. Requires the
+  correct password; 401 if it's wrong.
 - `GET /api/users` — list of all known display names, used for sign-in autocomplete
 - `GET /api/texts` — the 10 levels of practice text
 

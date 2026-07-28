@@ -10,9 +10,12 @@ persistence, backed by a real database instead of a flat JSON file.
 - Otherwise, falls back to a local SQLite file (thunder_type.db) so you can
   run this locally with zero setup — no external database required.
 
-Either way, every signed-in name gets its own row — best_wpm, best_accuracy,
-max_combo, rounds_finished, and current_level — keyed by a case-insensitive
-version of their name.
+Either way, every signed-in name gets its own row — protected by a password
+(PBKDF2-hashed, stdlib only, never stored in plaintext) — with best_wpm,
+best_accuracy, max_combo, rounds_finished, and current_level, keyed by a
+case-insensitive version of their name. Signing in with a new name creates
+an account with whatever password you type; signing in with an existing
+name requires that account's password.
 
 Run locally:   python server.py
 Then open:     http://127.0.0.1:8000
@@ -21,11 +24,15 @@ Deploy: set DATABASE_URL to a Postgres connection string and install
 psycopg2-binary (see requirements.txt).
 """
 
+import base64
+import hashlib
+import hmac
 import json
 import os
+import secrets
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
@@ -77,6 +84,28 @@ def _profile_key(name: str) -> str:
     return name.strip().lower()
 
 
+# ---------------------------------------------------------------------------
+# Password hashing — stdlib only (PBKDF2-HMAC-SHA256, 200k iterations).
+# No plaintext password is ever stored or compared directly.
+# ---------------------------------------------------------------------------
+
+_PBKDF2_ITERATIONS = 200_000
+
+
+def _hash_password(password: str) -> tuple[str, str]:
+    """Returns (salt_b64, hash_b64) for a freshly-chosen password."""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS)
+    return base64.b64encode(salt).decode("ascii"), base64.b64encode(digest).decode("ascii")
+
+
+def _verify_password(password: str, salt_b64: str, hash_b64: str) -> bool:
+    salt = base64.b64decode(salt_b64)
+    expected = base64.b64decode(hash_b64)
+    actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS)
+    return hmac.compare_digest(actual, expected)
+
+
 def init_db() -> None:
     conn = get_connection()
     try:
@@ -95,85 +124,149 @@ def init_db() -> None:
             """
         )
         conn.commit()
+
+        # Best-effort migration: adds password columns if this table was
+        # created by an earlier version of this app that had no auth. Safe
+        # to run every startup — fails harmlessly if the columns already
+        # exist (which is the normal case after the first run).
+        for column_sql in (
+            "ALTER TABLE profiles ADD COLUMN password_salt TEXT",
+            "ALTER TABLE profiles ADD COLUMN password_hash TEXT",
+        ):
+            try:
+                cur.execute(column_sql)
+                conn.commit()
+            except Exception:
+                conn.rollback()
     finally:
         conn.close()
 
 
-def get_profile(name: str) -> dict:
-    """Look up one user's saved stats. Returns fresh defaults if they're new."""
+class WrongPassword(Exception):
+    """Raised when a name exists but the supplied password doesn't match it."""
+
+
+def authenticate(name: str, password: str) -> dict:
+    """Log in as `name`. Creates a fresh account with this password if the
+    name has never been used before. Raises WrongPassword if the name is
+    taken and the password doesn't match — stats are never returned in
+    that case.
+    """
+    if not password:
+        raise ValueError("password is required")
+
     key = _profile_key(name)
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             _q(
-                "SELECT player_name, best_wpm, best_accuracy, max_combo, "
-                "rounds_finished, current_level FROM profiles WHERE name_key = ?"
+                "SELECT player_name, password_salt, password_hash, best_wpm, best_accuracy, "
+                "max_combo, rounds_finished, current_level FROM profiles WHERE name_key = ?"
             ),
             (key,),
         )
         row = cur.fetchone()
+
+        if row is None:
+            # Brand-new name: create the account with this password.
+            salt, pw_hash = _hash_password(password)
+            display_name = name.strip()
+            cur.execute(
+                _q(
+                    """
+                    INSERT INTO profiles
+                        (name_key, player_name, password_salt, password_hash,
+                         best_wpm, best_accuracy, max_combo, rounds_finished, current_level)
+                    VALUES (?, ?, ?, ?, 0, 0, 0, 0, 1)
+                    """
+                ),
+                (key, display_name, salt, pw_hash),
+            )
+            conn.commit()
+            result = dict(DEFAULT_STATS)
+            result["player_name"] = display_name
+            result["exists"] = False
+            return result
+
+        player_name, salt, pw_hash, best_wpm, best_accuracy, max_combo, rounds_finished, current_level = row
+
+        if not salt or not pw_hash:
+            # Row predates the password feature (migrated table) — claim it
+            # for whoever logs in first with this password, rather than
+            # locking the account out or silently accepting anything forever.
+            salt, pw_hash = _hash_password(password)
+            cur.execute(
+                _q("UPDATE profiles SET password_salt = ?, password_hash = ? WHERE name_key = ?"),
+                (salt, pw_hash, key),
+            )
+            conn.commit()
+        elif not _verify_password(password, salt, pw_hash):
+            raise WrongPassword()
+
+        return {
+            "player_name": player_name,
+            "best_wpm": best_wpm,
+            "best_accuracy": best_accuracy,
+            "max_combo": max_combo,
+            "rounds_finished": rounds_finished,
+            "current_level": current_level,
+            "exists": True,
+        }
     finally:
         conn.close()
 
-    result = dict(DEFAULT_STATS)
-    if row:
-        player_name, best_wpm, best_accuracy, max_combo, rounds_finished, current_level = row
-        result.update(
-            {
-                "best_wpm": best_wpm,
-                "best_accuracy": best_accuracy,
-                "max_combo": max_combo,
-                "rounds_finished": rounds_finished,
-                "current_level": current_level,
-            }
-        )
-        result["player_name"] = player_name
-    else:
-        result["player_name"] = name.strip()
-    result["exists"] = row is not None
-    return result
 
-
-def upsert_profile(data: dict) -> dict:
-    """Create or update one user's record. Every other user's row is untouched."""
-    name = (data.get("player_name") or "").strip()
-    if not name:
-        raise ValueError("player_name is required")
+def save_stats(name: str, password: str, data: dict) -> dict:
+    """Update one user's stats. Requires the correct password — never
+    touches a row unless it belongs to whoever is asking.
+    """
     key = _profile_key(name)
-
-    existing = get_profile(name)
-    merged = {field: existing[field] for field in STAT_FIELDS}
-    for field in STAT_FIELDS:
-        if field in data:
-            merged[field] = data[field]
-
     conn = get_connection()
     try:
         cur = conn.cursor()
         cur.execute(
             _q(
+                "SELECT player_name, password_salt, password_hash, best_wpm, best_accuracy, "
+                "max_combo, rounds_finished, current_level FROM profiles WHERE name_key = ?"
+            ),
+            (key,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError("no account with that name — sign in first")
+
+        player_name, salt, pw_hash, best_wpm, best_accuracy, max_combo, rounds_finished, current_level = row
+        if not salt or not pw_hash or not _verify_password(password, salt, pw_hash):
+            raise WrongPassword()
+
+        merged = {
+            "best_wpm": best_wpm,
+            "best_accuracy": best_accuracy,
+            "max_combo": max_combo,
+            "rounds_finished": rounds_finished,
+            "current_level": current_level,
+        }
+        for field in STAT_FIELDS:
+            if field in data:
+                merged[field] = data[field]
+
+        cur.execute(
+            _q(
                 """
-                INSERT INTO profiles
-                    (name_key, player_name, best_wpm, best_accuracy, max_combo, rounds_finished, current_level)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (name_key) DO UPDATE SET
-                    player_name = excluded.player_name,
-                    best_wpm = excluded.best_wpm,
-                    best_accuracy = excluded.best_accuracy,
-                    max_combo = excluded.max_combo,
-                    rounds_finished = excluded.rounds_finished,
-                    current_level = excluded.current_level
+                UPDATE profiles SET
+                    best_wpm = ?, best_accuracy = ?, max_combo = ?,
+                    rounds_finished = ?, current_level = ?
+                WHERE name_key = ?
                 """
             ),
             (
-                key,
-                name,
                 merged["best_wpm"],
                 merged["best_accuracy"],
                 merged["max_combo"],
                 merged["rounds_finished"],
                 merged["current_level"],
+                key,
             ),
         )
         conn.commit()
@@ -181,7 +274,7 @@ def upsert_profile(data: dict) -> dict:
         conn.close()
 
     result = dict(merged)
-    result["player_name"] = name
+    result["player_name"] = player_name
     result["exists"] = True
     return result
 
@@ -198,9 +291,7 @@ def list_users() -> list:
 
 
 # ---------------------------------------------------------------------------
-# HTTP layer — unchanged from the JSON-file version, since get_profile/
-# upsert_profile/list_users keep the exact same signatures. main.js needs
-# no changes at all.
+# HTTP layer — thin routing on top of authenticate/save_stats/list_users.
 # ---------------------------------------------------------------------------
 
 
@@ -224,14 +315,6 @@ class ThunderTypeHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/profile":
-            name = parse_qs(parsed.query).get("name", [""])[0]
-            if not name.strip():
-                self._send_json({"error": "name query parameter is required"}, status=400)
-                return
-            self._send_json(get_profile(name))
-            return
-
         if parsed.path == "/api/users":
             self._send_json(list_users())
             return
@@ -246,16 +329,43 @@ class ThunderTypeHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/profile":
-            length = int(self.headers.get("Content-Length", 0))
-            raw = self.rfile.read(length)
-            try:
-                data = json.loads(raw)
-            except json.JSONDecodeError:
-                self._send_json({"error": "invalid JSON"}, status=400)
+        if parsed.path == "/api/auth":
+            data = self._read_json_body()
+            if data is None:
+                return
+            name = (data.get("player_name") or "").strip()
+            password = data.get("password") or ""
+            if not name:
+                self._send_json({"error": "player_name is required"}, status=400)
+                return
+            if not password:
+                self._send_json({"error": "password is required"}, status=400)
                 return
             try:
-                result = upsert_profile(data)
+                result = authenticate(name, password)
+            except WrongPassword:
+                self._send_json({"error": "Incorrect password for that name."}, status=401)
+                return
+            except ValueError as e:
+                self._send_json({"error": str(e)}, status=400)
+                return
+            self._send_json(result)
+            return
+
+        if parsed.path == "/api/save":
+            data = self._read_json_body()
+            if data is None:
+                return
+            name = (data.get("player_name") or "").strip()
+            password = data.get("password") or ""
+            if not name or not password:
+                self._send_json({"error": "player_name and password are required"}, status=400)
+                return
+            try:
+                result = save_stats(name, password, data)
+            except WrongPassword:
+                self._send_json({"error": "Incorrect password for that name."}, status=401)
+                return
             except ValueError as e:
                 self._send_json({"error": str(e)}, status=400)
                 return
@@ -263,6 +373,18 @@ class ThunderTypeHandler(SimpleHTTPRequestHandler):
             return
 
         self.send_error(404, "Unknown endpoint")
+
+    def _read_json_body(self):
+        """Reads and parses the request body as JSON. Sends a 400 and
+        returns None on failure — callers should return immediately if
+        this returns None."""
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length)
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            self._send_json({"error": "invalid JSON"}, status=400)
+            return None
 
     def log_message(self, format, *args):  # noqa: A002 - stdlib signature
         pass  # keep the console quiet; remove this override for verbose logs
