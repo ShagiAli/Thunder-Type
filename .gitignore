@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+thunder_type.db
+profile.json
+profiles.json
+.env
+node_modules/

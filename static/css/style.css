@@ -242,6 +242,8 @@ input:focus-visible {
   line-height: 1.7;
   letter-spacing: 0.01em;
   word-spacing: 2px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .prompt-text .char {

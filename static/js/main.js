@@ -168,6 +168,8 @@ function bindEvents() {
   els.btnTheme.addEventListener("click", toggleTheme);
   els.typeInput.addEventListener("keyup", onKey);
   els.typeInput.addEventListener("input", onKey);
+  els.typeInput.addEventListener("paste", onBlockedPaste);
+  els.typeInput.addEventListener("drop", onBlockedPaste);
 }
 
 // ---- sign-in ----
@@ -300,6 +302,11 @@ function resetInput() {
   resetStatLabels();
   els.statusLine.textContent = "Input cleared. Start typing again.";
   els.typeInput.focus();
+}
+
+function onBlockedPaste(event) {
+  event.preventDefault();
+  els.statusLine.textContent = "Pasting isn't allowed — type it out to get real practice!";
 }
 
 function onKey(event) {
