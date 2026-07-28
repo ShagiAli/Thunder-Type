@@ -492,7 +492,8 @@ input:focus-visible {
   margin-top: 0;
 }
 
-.field input[type="text"] {
+.field input[type="text"],
+.field input[type="password"] {
   flex: 1;
   font-family: var(--font-body);
   font-size: 0.95rem;
