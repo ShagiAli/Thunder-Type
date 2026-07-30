@@ -627,61 +627,27 @@ button:disabled {
   max-width: 380px;
 }
 
-.role-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin: var(--space-md) 0;
-}
-
-.role-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-}
-
-.role-btn:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.role-btn.active {
-  border-color: var(--volt);
-  background: var(--volt-soft);
-}
-
-.role-icon {
-  font-size: 1.4rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.role-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.role-title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-.role-desc {
+.admin-corner-link {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+  font-family: var(--font-body);
   font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
-  white-space: normal;
+  text-decoration: none;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.admin-corner-link:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface);
 }
 
 .signin-bolt {

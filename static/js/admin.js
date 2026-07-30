@@ -24,8 +24,6 @@ function bindEvents() {
   els.search.addEventListener("input", renderTable);
 }
 
-const BOOTSTRAP_KEY = "thunderType.adminBootstrap";
-
 async function onLogin(event) {
   event.preventDefault();
   const password = els.passwordInput.value;
@@ -66,20 +64,6 @@ async function enterAdmin(password) {
     }
     els.adminError.hidden = false;
     return false;
-  }
-}
-
-/** Consumes the one-time handoff from the main sign-in page's Admin option, if present. */
-async function tryBootstrapLogin() {
-  let bootstrapPassword;
-  try {
-    bootstrapPassword = sessionStorage.getItem(BOOTSTRAP_KEY);
-    sessionStorage.removeItem(BOOTSTRAP_KEY); // one-time use, regardless of outcome
-  } catch (err) {
-    return; // storage blocked — just show the normal login form
-  }
-  if (bootstrapPassword) {
-    await enterAdmin(bootstrapPassword);
   }
 }
 
@@ -193,4 +177,3 @@ async function onResetPassword(name) {
 }
 
 bindEvents();
-tryBootstrapLogin();

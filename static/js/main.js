@@ -3,7 +3,7 @@
 
 import { GameState } from "./gameState.js";
 import { accuracyColorBucket } from "./stats.js";
-import { adminListUsers, authenticate, loadTexts, saveStats } from "./api.js";
+import { authenticate, loadTexts, saveStats } from "./api.js";
 import { createSigninBackground } from "./signinBackground.js";
 import { createAmbientBackground } from "./ambientBackground.js";
 
@@ -24,12 +24,6 @@ const els = {
   signinOverlay: document.getElementById("signinOverlay"),
   signinCanvas: document.getElementById("signinCanvas"),
   signinForm: document.getElementById("signinForm"),
-  signinSubtitle: document.getElementById("signinSubtitle"),
-  roleBtnPlayer: document.getElementById("roleBtnPlayer"),
-  roleBtnAdmin: document.getElementById("roleBtnAdmin"),
-  nameField: document.getElementById("nameField"),
-  passwordLabel: document.getElementById("passwordLabel"),
-  signinSubmitBtn: document.getElementById("signinSubmitBtn"),
   signinName: document.getElementById("signinName"),
   signinPassword: document.getElementById("signinPassword"),
   signinError: document.getElementById("signinError"),
@@ -75,7 +69,6 @@ const ambientBg = createAmbientBackground(els.mainCanvas);
 let levels = [];
 let playerName = "";
 let currentPassword = ""; // kept in memory only for the duration of the session, used to authorize saves
-let signinRole = "player"; // "player" | "admin" — which half of the sign-in form is showing
 let currentLevel = 1;
 let comboBeforeLevel = 0;
 let pendingGreeting = null;
@@ -181,8 +174,6 @@ function bindEvents() {
     if (e.target === els.profileOverlay) closeProfile();
   });
   els.btnTheme.addEventListener("click", toggleTheme);
-  els.roleBtnPlayer.addEventListener("click", () => setRole("player"));
-  els.roleBtnAdmin.addEventListener("click", () => setRole("admin"));
   els.typeInput.addEventListener("keyup", onKey);
   els.typeInput.addEventListener("input", onKey);
   els.typeInput.addEventListener("paste", onBlockedPaste);
@@ -194,84 +185,11 @@ function bindEvents() {
 function showSignIn() {
   els.signinOverlay.classList.add("open");
   signinBg.start();
-  setRole("player");
   requestAnimationFrame(() => els.signinName.focus());
-}
-
-function setRole(role) {
-  signinRole = role;
-  els.roleBtnPlayer.classList.toggle("active", role === "player");
-  els.roleBtnAdmin.classList.toggle("active", role === "admin");
-  els.signinError.hidden = true;
-  els.signinName.parentElement.classList.remove("has-error");
-  els.signinPassword.parentElement.classList.remove("has-error");
-
-  if (role === "admin") {
-    els.nameField.hidden = true;
-    els.passwordLabel.textContent = "Admin password";
-    els.signinPassword.placeholder = "Admin password";
-    els.signinSubtitle.textContent = "Enter the admin password to manage accounts and view the leaderboard.";
-    els.signinSubmitBtn.textContent = "Log in as Admin";
-  } else {
-    els.nameField.hidden = false;
-    els.passwordLabel.textContent = "Password";
-    els.signinPassword.placeholder = "Password";
-    els.signinSubtitle.textContent = "Sign in with a name and password. New name? That password becomes your account.";
-    els.signinSubmitBtn.textContent = "Start Playing";
-  }
 }
 
 async function onSignIn(event) {
   event.preventDefault();
-  if (signinRole === "admin") {
-    await onAdminSignIn();
-  } else {
-    await onPlayerSignIn();
-  }
-}
-
-async function onAdminSignIn() {
-  const password = els.signinPassword.value;
-  if (!password) {
-    els.signinError.textContent = "Please enter the admin password to continue.";
-    els.signinError.hidden = false;
-    els.signinPassword.parentElement.classList.add("has-error");
-    els.signinPassword.focus();
-    return;
-  }
-  els.signinError.hidden = true;
-  els.signinPassword.parentElement.classList.remove("has-error");
-
-  els.signinSubmitBtn.disabled = true;
-  els.signinSubmitBtn.textContent = "Checking...";
-
-  try {
-    // There's no separate "check password" endpoint on the admin API — a
-    // successful list-users call IS the auth check, same as admin.js does.
-    await adminListUsers(password);
-    // Hand the password to admin.html via a one-time sessionStorage key so
-    // it can log straight in without asking again. admin.js deletes this
-    // key immediately after reading it, so a later refresh of admin.html
-    // still requires the password (intentionally stricter than the game).
-    sessionStorage.setItem("thunderType.adminBootstrap", password);
-    window.location.href = "admin.html";
-  } catch (err) {
-    if (err.status === 503) {
-      els.signinError.textContent = "Admin access isn't set up on this server yet.";
-    } else if (err.status === 401) {
-      els.signinError.textContent = "Incorrect admin password.";
-    } else {
-      els.signinError.textContent = `Couldn't reach the server: ${err.message}`;
-    }
-    els.signinError.hidden = false;
-    els.signinPassword.value = "";
-    els.signinPassword.focus();
-    els.signinSubmitBtn.disabled = false;
-    els.signinSubmitBtn.textContent = "Log in as Admin";
-  }
-}
-
-async function onPlayerSignIn() {
   const name = els.signinName.value.trim();
   const password = els.signinPassword.value;
 
@@ -287,13 +205,14 @@ async function onPlayerSignIn() {
   els.signinName.parentElement.classList.remove("has-error");
   els.signinPassword.parentElement.classList.remove("has-error");
 
-  els.signinSubmitBtn.disabled = true;
-  els.signinSubmitBtn.textContent = "Signing in...";
+  const submitBtn = els.signinForm.querySelector("button[type=submit]");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Signing in...";
 
   const ok = await enterGameAs(name, password);
 
-  els.signinSubmitBtn.disabled = false;
-  els.signinSubmitBtn.textContent = "Start Playing";
+  submitBtn.disabled = false;
+  submitBtn.textContent = "Start Playing";
 
   if (ok) {
     els.signinPassword.value = "";

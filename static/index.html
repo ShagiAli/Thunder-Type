@@ -92,41 +92,25 @@
 
 <div class="modal-overlay open" id="signinOverlay">
   <canvas id="signinCanvas" class="signin-canvas" aria-hidden="true"></canvas>
+  <a class="admin-corner-link" href="admin.html" id="adminCornerLink">Admin</a>
   <div class="modal signin-card">
     <svg class="signin-bolt" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
     </svg>
     <h2>Welcome to Thunder Type</h2>
-    <p class="sub" id="signinSubtitle">Sign in with a name and password. New name? That password becomes your account.</p>
-
-    <div class="role-toggle" id="roleToggle">
-      <button type="button" class="role-btn active" id="roleBtnPlayer" data-role="player">
-        <span class="role-icon">⌨️</span>
-        <span class="role-text">
-          <span class="role-title">Player</span>
-          <span class="role-desc">Practice typing and climb the levels</span>
-        </span>
-      </button>
-      <button type="button" class="role-btn" id="roleBtnAdmin" data-role="admin">
-        <span class="role-icon">🛠️</span>
-        <span class="role-text">
-          <span class="role-title">Admin</span>
-          <span class="role-desc">Manage accounts &amp; view the leaderboard</span>
-        </span>
-      </button>
-    </div>
+    <p class="sub">Sign in with a name and password. New name? That password becomes your account.</p>
 
     <form id="signinForm" novalidate>
-      <div class="field" id="nameField">
+      <div class="field">
         <label for="signinName">Name</label>
         <input type="text" id="signinName" maxlength="40" placeholder="e.g. Awab" autocomplete="off" />
       </div>
       <div class="field">
-        <label for="signinPassword" id="passwordLabel">Password</label>
+        <label for="signinPassword">Password</label>
         <input type="password" id="signinPassword" maxlength="100" placeholder="Password" autocomplete="off" />
       </div>
       <p class="signin-error" id="signinError" hidden></p>
-      <button class="btn-primary modal-close" type="submit" id="signinSubmitBtn">Start Playing</button>
+      <button class="btn-primary modal-close" type="submit">Start Playing</button>
     </form>
   </div>
 </div>
