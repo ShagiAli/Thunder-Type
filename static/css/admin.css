@@ -1,0 +1,144 @@
+/* Admin page styling. Reuses every design token (colors, fonts, spacing)
+   from style.css — this file only adds the table/login layout that's
+   specific to the admin page. */
+
+.admin-app {
+  max-width: 1100px;
+}
+
+.admin-login-card {
+  max-width: 420px;
+  margin: var(--space-xl) auto 0;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.admin-login-card .field {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.admin-login-card input {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.admin-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: var(--space-sm);
+}
+
+.admin-table-card {
+  padding: var(--space-md);
+}
+
+.admin-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.admin-search {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  min-width: 200px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--surface-alt);
+}
+
+.admin-table .rank {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+}
+
+.admin-table .rank.top {
+  color: var(--volt);
+  font-weight: 700;
+}
+
+.admin-table .name-cell {
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+
+.admin-table .actions-cell {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-table .actions-cell button {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
+.btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+
+.admin-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--space-lg) 0;
+}
+
+@media (max-width: 620px) {
+  .admin-table {
+    font-size: 0.8rem;
+  }
+  .admin-table th,
+  .admin-table td {
+    padding: 8px 6px;
+  }
+}

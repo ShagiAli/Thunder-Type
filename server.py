@@ -56,6 +56,11 @@ STAT_FIELDS = tuple(DEFAULT_STATS.keys())
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# Separate from any player account — set this to a strong secret before
+# deploying. The admin page is completely disabled (every admin request
+# gets a 503) if this isn't set, so there's no default/blank admin password.
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+
 if DATABASE_URL:
     import psycopg2
 
@@ -280,7 +285,92 @@ def save_stats(name: str, password: str, data: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# HTTP layer — thin routing on top of authenticate/save_stats.
+# Admin operations. Every one of these requires ADMIN_PASSWORD — a secret
+# completely separate from any player account, set only via environment
+# variable. If ADMIN_PASSWORD isn't set, is_admin_configured() is False and
+# the HTTP layer refuses every admin request with a 503 rather than ever
+# falling back to an empty/default password.
+# ---------------------------------------------------------------------------
+
+
+def is_admin_configured() -> bool:
+    return bool(ADMIN_PASSWORD)
+
+
+def check_admin_password(password: str) -> bool:
+    if not is_admin_configured():
+        return False
+    return hmac.compare_digest((password or "").encode("utf-8"), ADMIN_PASSWORD.encode("utf-8"))
+
+
+def admin_list_users() -> list:
+    """Every user's stats, sorted by best WPM descending (a leaderboard).
+    Never includes password hashes/salts.
+    """
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT player_name, best_wpm, best_accuracy, max_combo, "
+            "rounds_finished, current_level FROM profiles"
+        )
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    users = [
+        {
+            "player_name": player_name,
+            "best_wpm": best_wpm,
+            "best_accuracy": best_accuracy,
+            "max_combo": max_combo,
+            "rounds_finished": rounds_finished,
+            "current_level": current_level,
+        }
+        for player_name, best_wpm, best_accuracy, max_combo, rounds_finished, current_level in rows
+    ]
+    users.sort(key=lambda u: u["best_wpm"], reverse=True)
+    return users
+
+
+def admin_delete_user(name: str) -> bool:
+    """Returns True if a user was actually deleted, False if that name didn't exist."""
+    key = _profile_key(name)
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(_q("DELETE FROM profiles WHERE name_key = ?"), (key,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+    finally:
+        conn.close()
+    return deleted
+
+
+def admin_reset_password(name: str, new_password: str) -> bool:
+    """Sets a new password for an existing user (their stats are untouched).
+    Returns True if the user existed, False otherwise.
+    """
+    if not new_password:
+        raise ValueError("new_password is required")
+    key = _profile_key(name)
+    salt, pw_hash = _hash_password(new_password)
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            _q("UPDATE profiles SET password_salt = ?, password_hash = ? WHERE name_key = ?"),
+            (salt, pw_hash, key),
+        )
+        updated = cur.rowcount > 0
+        conn.commit()
+    finally:
+        conn.close()
+    return updated
+
+
+# ---------------------------------------------------------------------------
+# HTTP layer — thin routing on top of authenticate/save_stats/admin_*.
 # ---------------------------------------------------------------------------
 
 
@@ -357,7 +447,71 @@ class ThunderTypeHandler(SimpleHTTPRequestHandler):
             self._send_json(result)
             return
 
+        if parsed.path == "/api/admin/users":
+            data = self._read_json_body()
+            if data is None:
+                return
+            if not self._require_admin(data):
+                return
+            self._send_json(admin_list_users())
+            return
+
+        if parsed.path == "/api/admin/delete-user":
+            data = self._read_json_body()
+            if data is None:
+                return
+            if not self._require_admin(data):
+                return
+            name = (data.get("player_name") or "").strip()
+            if not name:
+                self._send_json({"error": "player_name is required"}, status=400)
+                return
+            deleted = admin_delete_user(name)
+            if not deleted:
+                self._send_json({"error": "No account with that name."}, status=404)
+                return
+            self._send_json({"deleted": True, "player_name": name})
+            return
+
+        if parsed.path == "/api/admin/reset-password":
+            data = self._read_json_body()
+            if data is None:
+                return
+            if not self._require_admin(data):
+                return
+            name = (data.get("player_name") or "").strip()
+            new_password = data.get("new_password") or ""
+            if not name:
+                self._send_json({"error": "player_name is required"}, status=400)
+                return
+            try:
+                updated = admin_reset_password(name, new_password)
+            except ValueError as e:
+                self._send_json({"error": str(e)}, status=400)
+                return
+            if not updated:
+                self._send_json({"error": "No account with that name."}, status=404)
+                return
+            self._send_json({"reset": True, "player_name": name})
+            return
+
         self.send_error(404, "Unknown endpoint")
+
+    def _require_admin(self, data: dict) -> bool:
+        """Checks data['admin_password'] against ADMIN_PASSWORD. Sends the
+        appropriate error response and returns False if it's missing,
+        wrong, or admin access isn't configured at all.
+        """
+        if not is_admin_configured():
+            self._send_json(
+                {"error": "Admin access isn't configured on this server (ADMIN_PASSWORD not set)."},
+                status=503,
+            )
+            return False
+        if not check_admin_password(data.get("admin_password") or ""):
+            self._send_json({"error": "Incorrect admin password."}, status=401)
+            return False
+        return True
 
     def _read_json_body(self):
         """Reads and parses the request body as JSON. Sends a 400 and

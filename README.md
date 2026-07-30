@@ -38,6 +38,9 @@ robust stack.
   symbols as you climb. The dot row under the nav shows your progress; the
   "Next Level" button advances you, capping and looping at Level 10 once
   you've maxed out.
+- **Admin page** (`/admin.html`): a leaderboard of every player sorted by
+  best WPM, with per-user "Delete" and "Reset password" controls. Gated by
+  a separate admin password — see "Admin access" below.
 
 ## Using it on your phone (same WiFi as your laptop)
 
@@ -100,6 +103,37 @@ Both SQLite and Postgres share the exact same SQL in `server.py` — modern
 SQLite and Postgres both support `INSERT ... ON CONFLICT DO UPDATE`, so
 there's one code path, not two to maintain.
 
+## Admin access
+
+The admin page lives at `/admin.html` (e.g. `http://127.0.0.1:8000/admin.html`
+locally, or `https://your-app.onrender.com/admin.html` once deployed).
+
+It's gated by a separate `ADMIN_PASSWORD` environment variable — completely
+independent from any player's password. **If `ADMIN_PASSWORD` isn't set,
+the admin page is entirely non-functional** (every admin request gets a
+503) rather than falling back to any default or blank password.
+
+To enable it:
+
+- **Locally**: set the environment variable before running the server —
+  ```bash
+  # macOS/Linux
+  ADMIN_PASSWORD=your-strong-secret python server.py
+
+  # Windows PowerShell
+  $env:ADMIN_PASSWORD="your-strong-secret"; python server.py
+  ```
+- **On Render**: add `ADMIN_PASSWORD` as another environment variable on
+  your web service (same place you added `DATABASE_URL`), with a strong,
+  unique value — not something reused elsewhere.
+
+From the admin page you can see every player's stats sorted into a
+leaderboard, delete an account entirely, or reset a player's password if
+they forget it (their stats aren't touched by a password reset). The admin
+password itself is kept in memory only in the browser tab — refreshing the
+admin page requires logging in again, intentionally stricter than the
+game's own "stay signed in on refresh" behavior.
+
 ## Run the tests
 
 ```bash
@@ -124,20 +158,23 @@ step for the person running it (just a browser).
 
 ```
 thunder_type_web/
-├── server.py                # backend: static file server + per-user API, SQLite locally / Postgres in production
+├── server.py                # backend: static file server + per-user API + admin API, SQLite locally / Postgres in production
 ├── data/
 │   └── texts.json           # practice sentences, grouped into 10 levels (easy → hard)
 ├── thunder_type.db            # local SQLite file, created automatically on first run (not shipped)
 ├── requirements.txt          # psycopg2-binary — only needed when deploying with Postgres
 ├── static/                   # everything the browser loads
 │   ├── index.html
+│   ├── admin.html            # admin page — leaderboard, delete user, reset password
 │   ├── css/
-│   │   └── style.css        # all design tokens (colors/fonts/spacing) + components
+│   │   ├── style.css        # all design tokens (colors/fonts/spacing) + game page components
+│   │   └── admin.css        # admin page layout, reuses style.css's design tokens
 │   └── js/
 │       ├── stats.js         # pure functions: calcWpm, calcAccuracy, calcProgress — zero DOM access
 │       ├── gameState.js     # GameState class — combo/timer/round rules, mirrors stats.js's old Python twin
-│       ├── api.js           # fetch wrapper for the backend (loadProfile/saveProfile/loadUsers/loadTexts)
-│       └── main.js          # DOM wiring only — reads events, calls GameState, updates the page
+│       ├── api.js           # fetch wrapper for the backend (auth/save/texts + admin endpoints)
+│       ├── main.js          # DOM wiring for the game page only
+│       └── admin.js         # DOM wiring for the admin page only
 └── tests/
     └── test_stats.mjs       # 13 tests over stats.js + gameState.js, runnable with plain `node`
 ```
@@ -150,6 +187,14 @@ thunder_type_web/
 - `POST /api/save` — body `{player_name, password, ...stats}`. Requires the
   correct password; 401 if it's wrong.
 - `GET /api/texts` — the 10 levels of practice text
+- `POST /api/admin/users` — body `{admin_password}`. Returns every user's
+  stats as a leaderboard (sorted by best WPM). 503 if `ADMIN_PASSWORD`
+  isn't configured, 401 if the password is wrong.
+- `POST /api/admin/delete-user` — body `{admin_password, player_name}`.
+  Permanently deletes that account.
+- `POST /api/admin/reset-password` — body
+  `{admin_password, player_name, new_password}`. Sets a new password
+  without touching that user's stats.
 
 ## Why this split
 

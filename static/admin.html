@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thunder Type — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+<div class="app admin-app">
+
+  <header class="nav">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>Thunder Type — Admin</h1>
+        <p>Player accounts &amp; leaderboard.</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button id="btnRefresh" class="btn-ghost" type="button" hidden>Refresh</button>
+      <button id="btnLogout" class="btn-ghost" type="button" hidden>Log out</button>
+    </div>
+  </header>
+
+  <!-- Login gate -->
+  <section class="card admin-login-card" id="adminLoginCard">
+    <p class="card-label">Admin password</p>
+    <form id="adminLoginForm">
+      <div class="field">
+        <input type="password" id="adminPasswordInput" placeholder="Admin password" autocomplete="off" />
+        <button class="btn-primary" type="submit">Log in</button>
+      </div>
+    </form>
+    <p class="admin-error" id="adminError" hidden></p>
+  </section>
+
+  <!-- Leaderboard, shown after login -->
+  <section class="card admin-table-card" id="adminTableCard" hidden>
+    <div class="admin-table-header">
+      <p class="card-label">Leaderboard (by best WPM)</p>
+      <input type="text" id="adminSearch" class="admin-search" placeholder="Filter by name..." />
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="adminTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Best WPM</th>
+            <th>Best Accuracy</th>
+            <th>Best Combo</th>
+            <th>Rounds</th>
+            <th>Level</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+    </div>
+    <p class="admin-empty" id="adminEmpty" hidden>No players yet.</p>
+  </section>
+
+  <p class="status-line" id="adminStatus"></p>
+</div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

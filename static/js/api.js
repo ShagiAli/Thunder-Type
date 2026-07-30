@@ -37,3 +37,22 @@ export async function loadTexts() {
   if (!res.ok) throw new Error(`Failed to load texts: ${res.status}`);
   return res.json();
 }
+
+/** Fetches every user's stats (a leaderboard, sorted by best WPM). Requires the admin password. */
+export async function adminListUsers(adminPassword) {
+  return postJson("/api/admin/users", { admin_password: adminPassword });
+}
+
+/** Permanently deletes a user's account. Requires the admin password. */
+export async function adminDeleteUser(adminPassword, playerName) {
+  return postJson("/api/admin/delete-user", { admin_password: adminPassword, player_name: playerName });
+}
+
+/** Sets a new password for a user without touching their stats. Requires the admin password. */
+export async function adminResetPassword(adminPassword, playerName, newPassword) {
+  return postJson("/api/admin/reset-password", {
+    admin_password: adminPassword,
+    player_name: playerName,
+    new_password: newPassword,
+  });
+}
