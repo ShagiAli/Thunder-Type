@@ -663,17 +663,20 @@ button:disabled {
   margin-bottom: var(--space-md);
 }
 
-#signinForm .field {
+#signinForm .field,
+#adminLoginForm .field {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
 }
 
-#signinForm label {
+#signinForm label,
+#adminLoginForm label {
   text-align: left;
 }
 
-#signinForm input {
+#signinForm input,
+#adminLoginForm input {
   text-align: center;
   font-size: 1.05rem;
   padding: 10px 12px;

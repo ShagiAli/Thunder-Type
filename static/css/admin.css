@@ -27,30 +27,6 @@
   border-color: var(--border-strong);
 }
 
-.admin-login-card {
-  max-width: 420px;
-  margin: var(--space-xl) auto 0;
-  padding: var(--space-lg);
-  text-align: center;
-}
-
-.admin-login-card .field {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
-
-.admin-login-card input {
-  flex: 1;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  color: var(--text);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
-
 .admin-error {
   color: var(--danger);
   font-size: 0.85rem;

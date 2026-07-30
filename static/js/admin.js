@@ -1,7 +1,12 @@
 import { adminDeleteUser, adminListUsers, adminResetPassword } from "./api.js";
+import { createSigninBackground } from "./signinBackground.js";
+import { createAmbientBackground } from "./ambientBackground.js";
 
 const els = {
-  loginCard: document.getElementById("adminLoginCard"),
+  appRoot: document.getElementById("adminAppRoot"),
+  ambientCanvas: document.getElementById("adminAmbientCanvas"),
+  loginOverlay: document.getElementById("adminLoginOverlay"),
+  signinCanvas: document.getElementById("adminSigninCanvas"),
   loginForm: document.getElementById("adminLoginForm"),
   passwordInput: document.getElementById("adminPasswordInput"),
   adminError: document.getElementById("adminError"),
@@ -13,6 +18,9 @@ const els = {
   btnRefresh: document.getElementById("btnRefresh"),
   btnLogout: document.getElementById("btnLogout"),
 };
+
+const signinBg = createSigninBackground(els.signinCanvas, els.passwordInput);
+const ambientBg = createAmbientBackground(els.ambientCanvas);
 
 let adminPassword = ""; // kept in memory only — re-login required on refresh, intentionally stricter than the game's sign-in
 let allUsers = [];
@@ -48,10 +56,10 @@ async function enterAdmin(password) {
     // /api/admin/users call IS the auth check.
     allUsers = await adminListUsers(password);
     adminPassword = password;
-    els.loginCard.hidden = true;
-    els.tableCard.hidden = false;
-    els.btnRefresh.hidden = false;
-    els.btnLogout.hidden = false;
+    els.loginOverlay.classList.remove("open");
+    signinBg.stop();
+    els.appRoot.hidden = false;
+    ambientBg.start();
     renderTable();
     return true;
   } catch (err) {
@@ -70,10 +78,11 @@ async function enterAdmin(password) {
 function logout() {
   adminPassword = "";
   allUsers = [];
-  els.loginCard.hidden = false;
-  els.tableCard.hidden = true;
-  els.btnRefresh.hidden = true;
-  els.btnLogout.hidden = true;
+  els.passwordInput.value = "";
+  els.appRoot.hidden = true;
+  ambientBg.stop();
+  els.loginOverlay.classList.add("open");
+  signinBg.start();
   els.status.textContent = "";
 }
 
@@ -177,3 +186,4 @@ async function onResetPassword(name) {
 }
 
 bindEvents();
+signinBg.start();

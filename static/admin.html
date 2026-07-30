@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="css/admin.css" />
 </head>
 <body>
-<div class="app admin-app">
+<canvas id="adminAmbientCanvas" class="ambient-canvas" aria-hidden="true"></canvas>
+
+<div class="app admin-app" id="adminAppRoot" hidden>
 
   <header class="nav">
     <div class="wordmark">
@@ -28,25 +30,12 @@
     </div>
     <div class="nav-actions">
       <a href="index.html" class="btn-ghost" id="btnBackToSignin">← Back to Sign-in</a>
-      <button id="btnRefresh" class="btn-ghost" type="button" hidden>Refresh</button>
-      <button id="btnLogout" class="btn-ghost" type="button" hidden>Log out</button>
+      <button id="btnRefresh" class="btn-ghost" type="button">Refresh</button>
+      <button id="btnLogout" class="btn-ghost" type="button">Log out</button>
     </div>
   </header>
 
-  <!-- Login gate -->
-  <section class="card admin-login-card" id="adminLoginCard">
-    <p class="card-label">Admin password</p>
-    <form id="adminLoginForm">
-      <div class="field">
-        <input type="password" id="adminPasswordInput" placeholder="Admin password" autocomplete="off" />
-        <button class="btn-primary" type="submit">Log in</button>
-      </div>
-    </form>
-    <p class="admin-error" id="adminError" hidden></p>
-  </section>
-
-  <!-- Leaderboard, shown after login -->
-  <section class="card admin-table-card" id="adminTableCard" hidden>
+  <section class="card admin-table-card" id="adminTableCard">
     <div class="admin-table-header">
       <p class="card-label">Leaderboard (by best WPM)</p>
       <input type="text" id="adminSearch" class="admin-search" placeholder="Filter by name..." />
@@ -72,6 +61,27 @@
   </section>
 
   <p class="status-line" id="adminStatus"></p>
+</div>
+
+<div class="modal-overlay open" id="adminLoginOverlay">
+  <canvas id="adminSigninCanvas" class="signin-canvas" aria-hidden="true"></canvas>
+  <a href="index.html" class="admin-corner-link">← Back to Sign-in</a>
+  <div class="modal signin-card">
+    <svg class="signin-bolt" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" fill="var(--volt)" stroke="var(--volt)" stroke-width="0.5" stroke-linejoin="round"/>
+    </svg>
+    <h2>Admin Access</h2>
+    <p class="sub">Enter the admin password to manage accounts and view the leaderboard.</p>
+
+    <form id="adminLoginForm" novalidate>
+      <div class="field">
+        <label for="adminPasswordInput">Password</label>
+        <input type="password" id="adminPasswordInput" placeholder="Admin password" autocomplete="off" />
+      </div>
+      <p class="admin-error" id="adminError" hidden></p>
+      <button class="btn-primary modal-close" type="submit">Log in</button>
+    </form>
+  </div>
 </div>
 
 <script type="module" src="js/admin.js"></script>
