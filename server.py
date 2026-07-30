@@ -279,19 +279,8 @@ def save_stats(name: str, password: str, data: dict) -> dict:
     return result
 
 
-def list_users() -> list:
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT player_name FROM profiles")
-        rows = cur.fetchall()
-    finally:
-        conn.close()
-    return sorted((r[0] for r in rows), key=str.lower)
-
-
 # ---------------------------------------------------------------------------
-# HTTP layer — thin routing on top of authenticate/save_stats/list_users.
+# HTTP layer — thin routing on top of authenticate/save_stats.
 # ---------------------------------------------------------------------------
 
 
@@ -314,10 +303,6 @@ class ThunderTypeHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-
-        if parsed.path == "/api/users":
-            self._send_json(list_users())
-            return
 
         if parsed.path == "/api/texts":
             with TEXTS_PATH.open("r", encoding="utf-8") as f:

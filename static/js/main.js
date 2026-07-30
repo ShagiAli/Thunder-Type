@@ -3,7 +3,7 @@
 
 import { GameState } from "./gameState.js";
 import { accuracyColorBucket } from "./stats.js";
-import { authenticate, loadTexts, loadUsers, saveStats } from "./api.js";
+import { authenticate, loadTexts, saveStats } from "./api.js";
 import { createSigninBackground } from "./signinBackground.js";
 import { createAmbientBackground } from "./ambientBackground.js";
 
@@ -27,7 +27,6 @@ const els = {
   signinName: document.getElementById("signinName"),
   signinPassword: document.getElementById("signinPassword"),
   signinError: document.getElementById("signinError"),
-  knownUsers: document.getElementById("knownUsers"),
   playerGreeting: document.getElementById("playerGreeting"),
   levelTrack: document.getElementById("levelTrack"),
   levelPill: document.getElementById("levelPill"),
@@ -116,9 +115,7 @@ function readSession() {
 
 async function init() {
   try {
-    const [loadedLevels, users] = await Promise.all([loadTexts(), loadUsers()]);
-    levels = loadedLevels;
-    populateKnownUsers(users);
+    levels = await loadTexts();
   } catch (err) {
     // Backend not reachable (e.g. opened as a raw file instead of via
     // `python server.py`) — fall back to built-in defaults so the game
@@ -137,16 +134,6 @@ async function init() {
   } else {
     showSignIn();
   }
-}
-
-function populateKnownUsers(names) {
-  const frag = document.createDocumentFragment();
-  for (const name of names) {
-    const opt = document.createElement("option");
-    opt.value = name;
-    frag.appendChild(opt);
-  }
-  els.knownUsers.replaceChildren(frag);
 }
 
 function bindEvents() {
@@ -293,7 +280,6 @@ async function enterGameAs(name, password, { silent = false } = {}) {
   ambientBg.start();
 
   persist();
-  refreshKnownUsers();
   startLevel(currentLevel);
   startTicker();
   return true;
@@ -459,12 +445,6 @@ function switchUser() {
   state.startRound("");
 
   showSignIn();
-  refreshKnownUsers();
-}
-
-function refreshKnownUsers() {
-  if (!backendAvailable) return;
-  loadUsers().then(populateKnownUsers).catch((err) => console.warn("Could not refresh user list:", err));
 }
 
 function toggleTheme() {

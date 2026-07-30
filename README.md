@@ -149,7 +149,6 @@ thunder_type_web/
   exists and the password matches; returns 401 if it doesn't.
 - `POST /api/save` — body `{player_name, password, ...stats}`. Requires the
   correct password; 401 if it's wrong.
-- `GET /api/users` — list of all known display names, used for sign-in autocomplete
 - `GET /api/texts` — the 10 levels of practice text
 
 ## Why this split
