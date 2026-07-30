@@ -542,7 +542,26 @@ def _lan_ip() -> str:
 
 
 def main() -> None:
-    init_db()
+    print(f"Thunder Type starting (storage backend: {BACKEND})...")
+    if BACKEND == "postgres":
+        print(f"  Connecting to Postgres...")
+    try:
+        init_db()
+    except Exception as e:
+        print("=" * 70)
+        print("FAILED TO CONNECT TO THE DATABASE AT STARTUP.")
+        print(f"Backend: {BACKEND}")
+        if BACKEND == "postgres":
+            print("Common causes:")
+            print("  - DATABASE_URL isn't set on this service (check the Environment tab)")
+            print("  - You copied the wrong URL — use the Postgres instance's")
+            print("    'Internal Database URL', not the External one")
+            print("  - The Postgres instance and this web service are in different regions")
+            print("    (they must be in the same region to use the Internal URL)")
+        print(f"Underlying error: {type(e).__name__}: {e}")
+        print("=" * 70)
+        raise SystemExit(1)
+
     port = int(os.environ.get("PORT", 8000))
     server = ThreadingHTTPServer(("0.0.0.0", port), ThunderTypeHandler)
     lan_ip = _lan_ip()
