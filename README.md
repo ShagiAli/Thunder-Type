@@ -40,7 +40,10 @@ robust stack.
   you've maxed out.
 - **Admin page** (`/admin.html`): a leaderboard of every player sorted by
   best WPM, with per-user "Delete" and "Reset password" controls. Gated by
-  a separate admin password — see "Admin access" below.
+  a separate admin password — see "Admin access" below. Reachable right
+  from the main sign-in card: pick "Admin" instead of "Player" and it
+  hands you straight to the admin page without asking for the password
+  twice.
 
 ## Using it on your phone (same WiFi as your laptop)
 
@@ -106,7 +109,10 @@ there's one code path, not two to maintain.
 ## Admin access
 
 The admin page lives at `/admin.html` (e.g. `http://127.0.0.1:8000/admin.html`
-locally, or `https://your-app.onrender.com/admin.html` once deployed).
+locally, or `https://your-app.onrender.com/admin.html` once deployed) — or
+just pick "Admin" instead of "Player" on the main sign-in card, which
+verifies the password and redirects you there automatically (no need to
+navigate to the URL directly or re-enter the password on the admin page).
 
 It's gated by a separate `ADMIN_PASSWORD` environment variable — completely
 independent from any player's password. **If `ADMIN_PASSWORD` isn't set,
