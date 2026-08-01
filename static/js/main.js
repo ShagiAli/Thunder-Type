@@ -71,6 +71,7 @@ let playerName = "";
 let currentPassword = ""; // kept in memory only for the duration of the session, used to authorize saves
 let currentLevel = 1;
 let comboBeforeLevel = 0;
+let lastPromptText = ""; // avoids showing the exact same prompt twice in a row
 let pendingGreeting = null;
 let tickHandle = null;
 let backendAvailable = true;
@@ -296,10 +297,19 @@ function textsForLevel(levelNumber) {
   return entry.texts;
 }
 
+/** Random pick that avoids repeating `exclude` back-to-back when the pool allows it. */
+function pickRandomText(pool, exclude) {
+  if (pool.length <= 1) return pool[0];
+  const candidates = pool.filter((t) => t !== exclude);
+  const source = candidates.length > 0 ? candidates : pool;
+  return source[Math.floor(Math.random() * source.length)];
+}
+
 function startLevel(levelNumber) {
   currentLevel = clampLevel(levelNumber);
   const pool = textsForLevel(currentLevel);
-  const text = pool[Math.floor(Math.random() * pool.length)];
+  const text = pickRandomText(pool, lastPromptText);
+  lastPromptText = text;
 
   state.startRound(text);
   comboBeforeLevel = state.maxCombo;

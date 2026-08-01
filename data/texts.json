@@ -3,70 +3,110 @@
     "level": 1,
     "texts": [
       "Cats sleep a lot.",
-      "The sun is hot."
+      "The sun is hot.",
+      "I like my dog.",
+      "Birds can fly high.",
+      "We eat lunch at noon.",
+      "She has a red bike."
     ]
   },
   {
     "level": 2,
     "texts": [
       "The dog ran fast down the street.",
-      "I like to read books at night."
+      "I like to read books at night.",
+      "My mom cooks dinner every evening.",
+      "The kids play outside after school.",
+      "He drinks coffee every morning.",
+      "We watched a movie last weekend."
     ]
   },
   {
     "level": 3,
     "texts": [
       "Clean code is simple, clear, and easy to maintain.",
-      "Typing fast is a useful skill for programmers and students."
+      "Typing fast is a useful skill for programmers and students.",
+      "Reading every day can improve your vocabulary over time.",
+      "A balanced diet helps keep your body healthy and strong.",
+      "Good habits are built through small daily choices.",
+      "Learning something new keeps your mind sharp and active."
     ]
   },
   {
     "level": 4,
     "texts": [
       "Practice every day and you will see your typing speed increase over time.",
-      "A quiet morning walk can help clear your mind before a busy day."
+      "A quiet morning walk can help clear your mind before a busy day.",
+      "Setting small goals each week makes big projects feel manageable.",
+      "Music can help you focus while working on repetitive tasks.",
+      "Drinking enough water throughout the day improves concentration.",
+      "Taking short breaks during work can boost your overall productivity."
     ]
   },
   {
     "level": 5,
     "texts": [
       "Programming is the art of telling another human what one wants the computer to do.",
-      "Good communication is often more valuable than technical skill alone."
+      "Good communication is often more valuable than technical skill alone.",
+      "Patience and persistence matter more than raw talent in most fields.",
+      "A well organized desk can make it easier to focus on your work.",
+      "Learning to type without looking at the keyboard takes real practice.",
+      "Curiosity is often the first step toward mastering something new."
     ]
   },
   {
     "level": 6,
     "texts": [
       "Artificial intelligence is transforming the way we work, learn, and communicate.",
-      "Thunder Type is the fastest typing game created by Awab! Can you beat your best score?"
+      "Thunder Type is the fastest typing game created by Awab! Can you beat your best score?",
+      "Great teams communicate clearly, share credit, and learn from every mistake.",
+      "Consistency, not intensity, is usually what separates beginners from experts.",
+      "Reading widely exposes you to new ideas, styles, and ways of thinking.",
+      "Small improvements, repeated daily, eventually lead to remarkable results."
     ]
   },
   {
     "level": 7,
     "texts": [
       "Small, consistent habits compound into remarkable results over months and years.",
-      "The best engineers are not the fastest typists, but the clearest thinkers."
+      "The best engineers are not the fastest typists, but the clearest thinkers.",
+      "Deep focus is a skill that gets stronger the more often you practice it.",
+      "Most valuable skills are boring to practice but exciting to finally master.",
+      "The gap between average and excellent is usually just deliberate practice.",
+      "Clear writing almost always comes from clear thinking, not the other way around."
     ]
   },
   {
     "level": 8,
     "texts": [
       "In 2026, developers rely on tools like Git, Docker, & CI/CD pipelines (often daily).",
-      "\"Move fast,\" she said, \"but never break what you can't quickly fix.\""
+      "\"Move fast,\" she said, \"but never break what you can't quickly fix.\"",
+      "The report (updated weekly) tracks revenue, churn, and signups in real time.",
+      "Version control isn't optional anymore \u2014 it's the baseline for any real team.",
+      "\"Done is better than perfect,\" he reminded the team before the deadline.",
+      "Most bugs (roughly 80%, by some estimates) hide in the least-tested code paths."
     ]
   },
   {
     "level": 9,
     "texts": [
       "Deadlines, meetings, and Slack pings @ 9:47 AM rarely leave room for deep, focused work.",
-      "Version 2.0 shipped with 37% fewer bugs, 12 new features, and $0 in extra cost."
+      "Version 2.0 shipped with 37% fewer bugs, 12 new features, and $0 in extra cost.",
+      "The server handled 4,213 requests per second before the first errors appeared.",
+      "Ticket #4092 was reopened 3 times before someone finally found the root cause.",
+      "Sales grew 18% in Q1, dipped 4% in Q2, then rebounded sharply by August.",
+      "The meeting, originally 30 minutes, somehow stretched past 90 without an agenda."
     ]
   },
   {
     "level": 10,
     "texts": [
       "Extraordinary achievements require consistent practice, unwavering focus, disciplined patience, and \u2014 above all \u2014 genuine curiosity about how things truly work.",
-      "The compiler emitted 3 warnings, 1 deprecation notice, and (oddly) zero actual errors \u2014 which, in hindsight, should have worried us more."
+      "The compiler emitted 3 warnings, 1 deprecation notice, and (oddly) zero actual errors \u2014 which, in hindsight, should have worried us more.",
+      "She didn't just fix the bug; she rewrote the module, documented every edge case, and left the codebase better than she found it.",
+      "Success rarely looks like a straight line \u2014 it looks like a hundred small corrections, each one barely visible from the outside.",
+      "The interview wasn't about the right answer; it was about how calmly you could reason through the wrong ones.",
+      "By the time the project shipped \u2014 three rewrites, two missed deadlines, and one very long night later \u2014 nobody quite remembered why it had felt impossible."
     ]
   }
 ]
